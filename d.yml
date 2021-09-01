@@ -1,0 +1,73 @@
+- hosts: all
+
+  tasks :
+  - name: Creating Directory for Mounting dvd
+    file:
+      state: directory
+      path: "/dvd1"
+
+  - name: Mount dvd
+    mount:
+      src: "/dev/cdrom"
+      path: "/dvd1"
+      state: mounted
+      fstype: "iso9660"
+
+  - name: YUM Configure
+    yum_repository:
+      baseurl: "/dvd1/AppStream"
+      name: "mydvd1"
+      description: "My yum dvd1 for package"
+      gpgcheck: no
+
+  - name: Yum Configure
+    yum_repository:
+      baseurl: "/dvd1/BaseOS"
+      name: "mydvd2"
+      description: "My yum dvd2 for package"
+      gpgcheck: no
+
+  - name: YUM configuring for docker repo
+    yum_repository:
+      baseurl: "https://download.docker.com/linux/centos/7/x86_64/stable"
+      name: "docker"
+      description: "My yum repository for docker"
+      gpgcheck: no
+
+  - name: Installing Docker-ce
+    command: yum install docker-ce --nobest -y
+  
+  - name: Installing docker SDK
+    command: pip3 install docker
+
+  - name: Starting Docker Service
+    service:
+      name: "docker"
+      state: started
+
+  - name: Pull httpd image
+    community.general.docker_image:
+      name: httpd
+      source: pull
+
+  - name: Creating folder to mount container
+    file:
+      path: "/website"
+      state: directory
+
+  - name: Run Docker Container using HTTPD Image
+    docker_container:
+      image: httpd
+      name: web1
+      state: started
+      volumes: 
+      - /website/:/usr/local/apache2/htdocs/
+      exposed_ports: 
+      - "80"
+      ports:
+      - "8082:80"
+
+  - name: Creating webpage
+    copy:
+      src: "myweb.html"
+      dest: "/website/"
